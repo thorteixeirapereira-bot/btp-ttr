@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1e5c0a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BTP TTR">
+<meta name="description" content="Brasil Terminal Portuário - Controle de Frota TTR">
+<title>BTP TTR — Brasil Terminal Portuário</title>
+<link rel="manifest" href="manifest.json">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --vd:#1e5c0a;--vm:#3a8a18;--vc:#6ab830;
+  --ab:#7a2e00;--am:#c45a0a;--am2:#d4a010;
+  --co:#c07000;--id:#c02020;
+  --brd:#b0d080;--cz:#f0f4ec;
+  --shadow:0 2px 8px rgba(0,0,0,.12);
+  --r:8px;
+}
+html{height:100%;overflow-x:hidden}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f2f5ee;min-height:100%;font-size:13px;overscroll-behavior:none}
+
+/* ── LAYOUT ── */
+.dash{padding:10px;max-width:1400px;margin:0 auto}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:3px;margin-bottom:0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:8px 18px;border-radius:8px 8px 0 0;border:1px solid var(--brd);background:var(--cz);cursor:pointer;font-size:12px;font-weight:600;color:#555;border-bottom:none;white-space:nowrap;flex-shrink:0}
+.tab.active{background:var(--vd);color:#fff;border-color:var(--vd)}
+.tab-content{display:none;border-top:2px solid var(--vd);padding-top:8px}
+.tab-content.active{display:block}
+
+/* ── HEADER ── */
+.hdr{background:var(--vd);color:#fff;padding:10px 14px;border-radius:0 8px 8px 8px;margin-bottom:10px;box-shadow:var(--shadow)}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.hdr-top h1{font-size:15px;font-weight:700;line-height:1.2}
+.hdr-top .sub{font-size:9px;opacity:.75;margin-top:2px}
+.clock{font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;background:rgba(255,255,255,.15);padding:4px 10px;border-radius:20px}
+.hdr-fields{display:flex;gap:6px;flex-wrap:wrap}
+.hf{display:flex;flex-direction:column;gap:2px;flex:1;min-width:80px}
+.hf label{font-size:8px;opacity:.7}
+.hf select,.hf input{font-size:11px;padding:5px 7px;border-radius:6px;border:none;background:rgba(255,255,255,.2);color:#fff;width:100%}
+.hf select option{color:#333;background:#fff}
+.hf input::placeholder{color:rgba(255,255,255,.5)}
+
+/* ── CARD CONJUNTOS ── */
+.conj-card{background:var(--vd);color:#fff;border-radius:var(--r);padding:12px 16px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow)}
+.conj-card .big{font-size:42px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.conj-card .lbl{font-size:10px;opacity:.8;margin-bottom:2px}
+.conj-card .sub{font-size:9px;opacity:.65;margin-top:2px}
+.conj-card .right{text-align:right}
+.conj-card .pct{font-size:24px;font-weight:700}
+.conj-card .pct-lbl{font-size:8px;opacity:.7}
+.bars{display:flex;flex-direction:column;gap:4px;margin-top:6px;min-width:120px}
+.bar-row{display:flex;align-items:center;gap:5px;font-size:8px;opacity:.9}
+.bar-row .bl{min-width:55px;text-align:right;font-size:8px}
+.bar-bg{flex:1;height:7px;background:rgba(255,255,255,.2);border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;background:rgba(255,255,255,.75)}
+
+/* ── MÉTRICAS ── */
+.metricas-wrap{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.met-bloco{background:#fff;border:1.5px solid var(--brd);border-radius:var(--r);padding:8px 10px;box-shadow:var(--shadow)}
+.met-bloco-title{font-size:9px;font-weight:700;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--brd)}
+.met-bloco-title.cav{color:var(--vd)}.met-bloco-title.semi{color:var(--ab)}
+.met-row{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.mc{background:var(--cz);border-radius:6px;padding:7px 5px;text-align:center;border-top:2.5px solid var(--vm)}
+.mc.ab{border-top-color:var(--am)}.mc.am{border-top-color:var(--am2)}.mc.co{border-top-color:var(--co)}.mc.tot{border-top-color:#666}
+.mc .n{font-size:17px;font-weight:700;color:var(--vd)}
+.mc.ab .n{color:var(--ab)}.mc.am .n{color:#7a5800}.mc.co .n{color:#7a3800}.mc.tot .n{color:#333}
+.mc .lbl{font-size:7px;color:#666;margin-top:1px;line-height:1.2}
+
+/* ── GRÁFICOS ── */
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.cc{background:#fff;border-radius:var(--r);padding:8px;border:1px solid var(--brd);box-shadow:var(--shadow)}
+.cc h3{font-size:9px;font-weight:600;text-align:center;margin-bottom:4px;color:#444}
+.cc h3.cav{color:var(--vd)}.cc h3.semi{color:var(--ab)}
+.dw{position:relative;height:100px}
+.dl{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+.dl .pct{font-size:16px;font-weight:700;color:var(--vd)}.dl .sub{font-size:7px;color:#999}
+.leg{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;font-size:7px;color:#666;margin-top:3px}
+.leg span{display:flex;align-items:center;gap:2px}
+.ld{width:6px;height:6px;border-radius:2px;display:inline-block}
+
+/* ── LEGENDA STATUS ── */
+.lnd{display:flex;gap:8px;flex-wrap:wrap;font-size:8px;color:#555;margin-bottom:8px;padding:6px 10px;background:#fff;border-radius:var(--r);border:1px solid var(--brd)}
+.lnd span{display:flex;align-items:center;gap:3px}
+.lsq{width:9px;height:9px;border-radius:2px;display:inline-block;border:1.5px solid #aaa}
+
+/* ── FILTROS ── */
+.fb{background:#fff;border:1px solid var(--brd);border-radius:var(--r);padding:8px 10px;margin-bottom:8px;display:flex;gap:7px;align-items:flex-end;flex-wrap:wrap;box-shadow:var(--shadow)}
+.fb label{font-size:8px;color:#666;display:block;margin-bottom:2px}
+.fb select,.fb input[type=date]{font-size:10px;padding:5px 7px;border-radius:6px;border:1px solid var(--brd);background:#fff;min-width:70px}
+.btn{font-size:10px;padding:6px 12px;border-radius:6px;border:none;color:#fff;cursor:pointer;font-weight:600;white-space:nowrap;min-height:32px;display:inline-flex;align-items:center;gap:4px}
+.btn.vd{background:var(--vm)}.btn.ab{background:var(--am)}.btn.gr{background:#888}
+.btn.az{background:#1a5a9a}.btn.rd{background:var(--id)}.btn.lj{background:#9a1a9a}
+.btn.pdf{background:#c0392b;font-size:11px;padding:7px 16px}
+.btn:active{opacity:.75;transform:scale(.97)}
+
+/* ── PAINÉIS ── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.panel{background:#fff;border:1px solid var(--brd);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
+.ph{padding:7px 12px;font-size:10px;font-weight:600;color:#fff}
+.ph.vd{background:var(--vm)}.ph.ab{background:var(--am)}.ph.vde{background:var(--vd)}
+.ph.abe{background:var(--ab)}.ph.am2{background:var(--am2)}.ph.lj{background:#9a1a9a}
+.pb{padding:8px 10px}
+
+/* ── TIPO BTNS ── */
+.tbs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:7px}
+.tbtn{font-size:9px;padding:4px 10px;border-radius:12px;border:1px solid var(--brd);background:var(--cz);cursor:pointer;font-weight:500;color:#444}
+.tbtn.av{background:var(--vm);color:#fff;border-color:var(--vm)}
+.tbtn.ab{background:var(--am);color:#fff;border-color:var(--am)}
+
+/* ── INPUT ROW ── */
+.ri{display:flex;gap:5px;align-items:center;margin-bottom:6px;flex-wrap:wrap}
+.ri select,.ri input[type=text]{font-size:10px;padding:5px 7px;border-radius:6px;border:1px solid var(--brd);min-height:32px}
+.ri select{flex:1;min-width:100px}.ri input[type=text]{flex:1.4;min-width:80px}
+
+/* ── LISTAS ── */
+.lista{max-height:140px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.im{display:flex;align-items:center;padding:5px 7px;border-radius:6px;margin-bottom:3px;font-size:9px;background:var(--cz);border:1px solid var(--brd);gap:3px;flex-wrap:wrap}
+.im .ne{font-weight:700;color:var(--vd);min-width:44px;font-size:10px}.im .ne.ab{color:var(--ab)}
+.badge{font-size:7px;padding:2px 5px;border-radius:8px;color:#fff;font-weight:600;white-space:nowrap}
+.badge.mk{background:var(--vm)}.badge.ab{background:var(--am)}.badge.rd{background:var(--id)}
+.badge.am{background:#c8a000}.badge.co{background:var(--co)}
+.im .desc{color:#666;flex:1;font-style:italic;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:70px;min-width:40px}
+.im .meta{font-size:7px;color:#aaa;white-space:nowrap;flex-basis:100%}
+.im .tmr{font-size:9px;font-weight:700;color:var(--co);min-width:38px;font-variant-numeric:tabular-nums}
+.stbtn{font-size:8px;padding:3px 6px;border-radius:6px;border:1.5px solid #ccc;background:#f0f0f0;cursor:pointer;font-weight:600;color:#666;min-height:26px}
+.stbtn.p{background:#ffe090;border-color:#c8a000;color:#7a5800}
+.stbtn.c{background:#ffd080;border-color:var(--co);color:#7a3800}
+.stbtn.i{background:#ffc0b0;border-color:var(--id);color:#800000}
+.blib{font-size:8px;padding:3px 8px;border-radius:8px;background:#e0f0d0;color:var(--vd);border:1px solid var(--vc);cursor:pointer;white-space:nowrap;min-height:26px}
+.blib:active{background:var(--vc);color:#fff}
+
+/* ── FILTROS GRID ── */
+.fgb{background:var(--cz);border:1px solid var(--brd);border-radius:6px;padding:6px 8px;margin-bottom:7px;display:flex;gap:6px;align-items:flex-end;flex-wrap:wrap}
+.fgb label{font-size:8px;color:#666;display:block;margin-bottom:1px}
+.fgb select{font-size:9px;padding:4px 6px;border-radius:5px;border:1px solid var(--brd);background:#fff;min-height:28px}
+
+/* ── GRID EQUIPAMENTOS ── */
+.eq-grid{display:flex;gap:3px;flex-wrap:wrap;max-height:100px;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:2px}
+.eq{width:34px;height:34px;border-radius:5px;border:1.5px solid #ccc;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:5.5px;font-weight:700;cursor:pointer;position:relative;background:#e8e8e8;color:#555;user-select:none;transition:transform .1s}
+.eq:active{transform:scale(1.15)}
+.eq.disp{background:#c8f0a0;border-color:#6ab830;color:var(--vd)}
+.eq.prev{background:#ffe090;border-color:#c8a000;color:#7a5800}
+.eq.corr{background:#ffd080;border-color:var(--co);color:#7a3800}
+.eq.indisp{background:#ffc0b0;border-color:var(--id);color:#800000}
+.eq .fd{position:absolute;top:2px;right:2px;width:5px;height:5px;border-radius:50%;background:#e02020;border:1px solid rgba(255,255,255,.6)}
+.eq .fd.ok{background:#22aa22}
+.eq .atr-dot{position:absolute;bottom:2px;left:2px;width:5px;height:5px;border-radius:50%;background:#9a1a9a;border:1px solid rgba(255,255,255,.6)}
+
+/* ── TOOLTIP desktop apenas ── */
+#eq-tooltip{position:fixed;background:#1a1a1a;color:#fff;font-size:10px;padding:7px 11px;border-radius:7px;white-space:nowrap;z-index:9999;pointer-events:none;display:none;line-height:1.6;box-shadow:0 4px 16px rgba(0,0,0,.35)}
+#eq-tooltip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#1a1a1a}
+
+/* ── FILA ── */
+.fi{display:flex;align-items:center;padding:5px 8px;border-radius:6px;margin-bottom:3px;font-size:9px;background:#fff8ec;border:1px solid #f0b070;gap:4px;flex-wrap:wrap}
+.fi .ne{font-weight:700;color:var(--ab);min-width:44px;font-size:10px}
+.fi .tmr{font-size:9px;font-weight:700;color:var(--am);font-variant-numeric:tabular-nums}
+.bconf{font-size:9px;padding:4px 10px;border-radius:8px;background:var(--ab);color:#fff;border:none;cursor:pointer;font-weight:600;min-height:30px}
+
+/* ── ATRELAMENTO ── */
+.atr-wrap{background:#fff;border:1px solid #d0a0e0;border-radius:var(--r);overflow:hidden;margin-bottom:10px;box-shadow:var(--shadow)}
+.atr-list{max-height:110px;overflow-y:auto;padding:5px 10px}
+.atr-item{display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:5px;margin-bottom:3px;font-size:9px;background:var(--cz);border:1px solid #d0a0e0}
+.atr-item .cv{font-weight:700;color:var(--vd);min-width:52px}
+.atr-item .sm{font-weight:700;color:var(--ab);min-width:58px}
+.batr{font-size:8px;padding:3px 8px;border-radius:8px;background:#f0d0ff;color:#6a0a9a;border:1px solid #d0a0e0;cursor:pointer;min-height:26px}
+
+/* ── EDIT AREA ── */
+.ea{display:none;margin-bottom:6px;background:var(--cz);border-radius:6px;padding:8px}
+.ea textarea{width:100%;font-size:9px;padding:5px;border-radius:5px;border:1px solid var(--brd);height:50px;resize:vertical}
+.ea .ea-act{display:flex;gap:4px;margin-top:5px}
+
+/* ── CFG ── */
+.cfg-g{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.cfg-c{background:#fff;border:1px solid var(--brd);border-radius:var(--r);padding:8px 10px;box-shadow:var(--shadow)}
+.cfg-c label{font-size:8px;color:#666;display:block;margin-bottom:3px}
+.cfg-c .cr{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.cfg-c input[type=number]{width:60px;font-size:13px;font-weight:700;padding:4px 6px;border-radius:6px;border:1px solid var(--brd);color:var(--vd);text-align:center;min-height:32px}
+
+/* ── MODAL (fixed) ── */
+#modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.55);z-index:8000;display:none;align-items:center;justify-content:center;padding:16px}
+#modal-overlay.show{display:flex}
+#modal-box{background:#fff;border-radius:12px;padding:18px 20px;width:100%;max-width:320px;border:2px solid var(--vm);box-shadow:0 8px 40px rgba(0,0,0,.3)}
+#modal-box .mt{font-size:14px;font-weight:700;color:var(--vd);margin-bottom:3px}
+#modal-box .mi{font-size:10px;color:#777;margin-bottom:10px}
+#modal-box .ms{font-size:10px;font-weight:600;color:#444;margin-bottom:6px}
+
+/* ── AVISO ── */
+.aviso{text-align:center;color:#bbb;font-size:9px;padding:10px}
+
+/* ── SAVE BAR ── */
+#save-bar{position:fixed;bottom:16px;right:16px;background:var(--vd);color:#fff;font-size:11px;font-weight:600;padding:8px 16px;border-radius:20px;z-index:9990;display:none;align-items:center;gap:6px;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+#save-bar.show{display:flex}
+
+/* ── PDF LOADING ── */
+#pdf-loading{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.65);z-index:9998;align-items:center;justify-content:center}
+#pdf-loading.show{display:flex}
+#pdf-loading .box{background:#fff;border-radius:14px;padding:28px 36px;text-align:center}
+#pdf-loading .box .title{font-size:15px;font-weight:700;color:var(--vd);margin-bottom:8px}
+#pdf-loading .box .sub{font-size:11px;color:#888}
+#pdf-loading .spinner{width:38px;height:38px;border:3px solid var(--brd);border-top-color:var(--vm);border-radius:50%;animation:spin .8s linear infinite;margin:12px auto 0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── RELATÓRIOS ── */
+.rh{background:var(--vd);color:#fff;padding:10px 14px;border-radius:0 8px 8px 8px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;box-shadow:var(--shadow)}
+.rh h2{font-size:13px;font-weight:700}
+.rh-btns{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.rfb{background:#fff;border:1px solid var(--brd);border-radius:var(--r);padding:8px 10px;margin-bottom:10px;display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;box-shadow:var(--shadow)}
+.rfb label{font-size:8px;color:#666;display:block;margin-bottom:2px}
+.rfb select,.rfb input[type=date]{font-size:10px;padding:5px 7px;border-radius:6px;border:1px solid var(--brd);background:#fff;min-height:32px}
+.rel-met-wrap{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.rel-bloco{border:1.5px solid var(--brd);border-radius:var(--r);padding:8px 10px;background:#fff;box-shadow:var(--shadow)}
+.rel-bloco-title{font-size:9px;font-weight:700;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--brd)}
+.rel-bloco-title.cav{color:var(--vd)}.rel-bloco-title.semi{color:var(--ab)}
+.rel-row{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.rc{background:var(--cz);border-radius:6px;padding:6px 5px;text-align:center;border-top:2.5px solid var(--vm)}
+.rc.ab{border-top-color:var(--am)}.rc.co{border-top-color:var(--co)}.rc.am{border-top-color:var(--am2)}.rc.tot{border-top-color:#666}
+.rc .rn{font-size:16px;font-weight:700;color:var(--vd)}
+.rc.ab .rn{color:var(--ab)}.rc.co .rn{color:#7a3800}.rc.am .rn{color:#7a5800}.rc.tot .rn{color:#333}
+.rc .rl{font-size:7px;color:#666;margin-top:1px}
+.bi-g{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.bi-c{background:#fff;border:1px solid var(--brd);border-radius:var(--r);padding:8px;box-shadow:var(--shadow)}
+.bi-c h3{font-size:10px;color:#444;font-weight:600;margin-bottom:7px;text-align:center}
+.mot-r{display:flex;align-items:center;gap:5px;font-size:9px;margin-bottom:5px}
+.mot-r .ml{min-width:55px;color:#555}
+.mb{flex:1;background:#e0e0e0;border-radius:3px;height:12px;overflow:hidden}
+.mf{height:100%;border-radius:3px;background:var(--vm)}
+.mv{min-width:22px;text-align:right;color:#555;font-weight:600;font-size:9px}
+.tmr-g{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.tmr-c{background:#fff;border:1px solid var(--brd);border-radius:var(--r);padding:10px 8px;text-align:center;box-shadow:var(--shadow)}
+.tmr-c h3{font-size:9px;font-weight:600;color:#444;margin-bottom:4px}
+.tmr-c .tv{font-size:20px;font-weight:700;color:var(--am);font-variant-numeric:tabular-nums}
+.tmr-c .ts{font-size:7px;color:#999}
+.rtw{background:#fff;border:1px solid var(--brd);border-radius:var(--r);overflow:hidden;margin-bottom:10px;box-shadow:var(--shadow)}
+.rtw h3{font-size:10px;font-weight:600;padding:7px 12px;background:var(--vd);color:#fff}
+.rt-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.rt{width:100%;border-collapse:collapse;font-size:9px;min-width:700px}
+.rt th{background:var(--cz);padding:5px 8px;text-align:left;font-weight:600;color:#444;border-bottom:1px solid var(--brd);white-space:nowrap}
+.rt td{padding:4px 8px;border-bottom:1px solid #eee;color:#555;white-space:nowrap}
+.rt tr:hover td{background:#f8fbf4}
+.rt tbody{display:block;max-height:200px;overflow-y:auto}
+.rt thead,.rt tbody tr{display:table;width:100%;table-layout:fixed}
+.sb{font-size:7px;padding:2px 5px;border-radius:4px;color:#fff;font-weight:600}
+
+/* ── PWA INSTALL BANNER ── */
+#install-banner{display:none;background:var(--am);color:#fff;padding:10px 14px;border-radius:var(--r);margin-bottom:8px;align-items:center;justify-content:space-between;gap:10px;box-shadow:var(--shadow)}
+#install-banner.show{display:flex}
+#install-banner p{font-size:11px;font-weight:500}
+#install-banner .ib-btns{display:flex;gap:6px}
+
+/* ── RESPONSIVE BREAKPOINTS ── */
+
+/* TABLET 768px */
+@media(max-width:768px){
+  .dash{padding:8px}
+  .conj-card .big{font-size:34px}
+  .mc .n{font-size:15px}
+  .two-col{grid-template-columns:1fr}
+  .cfg-g{grid-template-columns:1fr}
+  .bi-g{grid-template-columns:1fr}
+  .metricas-wrap{grid-template-columns:1fr}
+  .charts-row{grid-template-columns:1fr}
+  .tmr-g{grid-template-columns:1fr 1fr 1fr}
+  .rel-met-wrap{grid-template-columns:1fr}
+}
+
+/* MOBILE 480px */
+@media(max-width:480px){
+  .dash{padding:6px}
+  .hdr-top h1{font-size:13px}
+  .clock{font-size:12px;padding:3px 8px}
+  .conj-card{flex-direction:column;gap:10px;text-align:center}
+  .conj-card .right{width:100%}
+  .conj-card .big{font-size:48px}
+  .conj-card .pct{font-size:20px}
+  .bars{min-width:unset;width:100%}
+  .bar-row .bl{min-width:70px}
+  .met-row{grid-template-columns:repeat(4,1fr)}
+  .mc .n{font-size:16px}
+  .mc .lbl{font-size:6px}
+  .rh{flex-direction:column;align-items:flex-start}
+  .rh-btns{width:100%;flex-wrap:wrap}
+  .tmr-g{grid-template-columns:1fr}
+  .rel-row{grid-template-columns:repeat(2,1fr)}
+  .fb{gap:5px}
+  .rfb{gap:5px}
+  .eq{width:36px;height:36px;font-size:6px}
+  .eq-grid{max-height:120px}
+  .ri{flex-direction:column;align-items:stretch}
+  .ri select,.ri input[type=text]{width:100%}
+}
+
+/* VERY SMALL 360px */
+@media(max-width:360px){
+  .met-row{grid-template-columns:repeat(2,1fr)}
+  .mc .n{font-size:18px}
+}
+</style>
+</head>
+<body>
+
+<div id="eq-tooltip"></div>
+<div id="save-bar">💾 Dados salvos</div>
+
+<div id="install-banner">
+  <p>📱 Instalar BTP TTR no celular para acesso offline</p>
+  <div class="ib-btns">
+    <button class="btn vd" id="btn-install" style="font-size:10px;padding:5px 12px">Instalar</button>
+    <button class="btn gr" id="btn-install-dismiss" style="font-size:10px;padding:5px 10px">✕</button>
+  </div>
+</div>
+
+<div id="modal-overlay">
+  <div id="modal-box">
+    <div class="mt" id="modal-title"></div>
+    <div class="mi" id="modal-info"></div>
+    <div class="ms">Alterar status</div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px" id="modal-st-btns"></div>
+    <div class="ms">Abastecimento</div>
+    <div style="display:flex;gap:5px;margin-bottom:12px">
+      <button class="btn vd" onclick="setFuel(true)">✓ Abastecido</button>
+      <button class="btn rd" onclick="setFuel(false)">✕ A abastecer</button>
+    </div>
+    <div style="font-size:9px;font-weight:600;color:#9a1a9a;margin-bottom:4px" id="modal-atr-label"></div>
+    <div id="modal-atr-info" style="font-size:10px;color:#555;margin-bottom:12px;padding:6px 8px;background:#f8f0ff;border-radius:6px;border:1px solid #d0a0e0;display:none"></div>
+    <button class="btn gr" style="width:100%" onclick="fModal()">Fechar</button>
+  </div>
+</div>
+
+<div id="pdf-loading">
+  <div class="box">
+    <div class="title">Gerando PDF...</div>
+    <div class="sub">Compilando dados da operação</div>
+    <div class="spinner"></div>
+  </div>
+</div>
+
+<div class="dash">
+<div class="tabs">
+  <div class="tab active" onclick="sw('painel')">⚙️ Painel</div>
+  <div class="tab" onclick="sw('relatorios')">📊 Relatórios</div>
+</div>
+
+<!-- ════ PAINEL ════ -->
+<div id="tab-painel" class="tab-content active">
+<div class="hdr">
+  <div class="hdr-top">
+    <div>
+      <h1>Brasil Terminal Portuário</h1>
+      <div class="sub">Controle de Frota TTR — dados salvos offline</div>
+    </div>
+    <div class="clock" id="clock">00:00:00</div>
+  </div>
+  <div class="hdr-fields">
+    <div class="hf"><label>Data</label><input type="date" id="data-op"></div>
+    <div class="hf"><label>Turno</label><select id="turno-sel"><option>07x13</option><option>13x19</option><option>19x01</option><option>01x07</option></select></div>
+    <div class="hf"><label>Equipe</label><select id="equipe-sel"><option value="">Equipe</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></div>
+    <div class="hf"><label>Facilitador</label><input type="text" id="facil-inp" placeholder="Nome..."></div>
+  </div>
+</div>
+
+<div class="cfg-g">
+  <div class="cfg-c"><label>Total de Cavalos na frota</label><div class="cr"><input type="number" id="tot-cav-inp" min="1" max="200" value="86"><button class="btn vd" onclick="aplicarFrota('cav')">Aplicar</button><button class="btn gr" onclick="tgEdit('cav')">Editar</button></div><div style="font-size:9px;color:#888;margin-top:3px" id="tot-cav-sub">86 cavalos</div></div>
+  <div class="cfg-c"><label>Total de Semirreboques na frota</label><div class="cr"><input type="number" id="tot-semi-inp" min="1" max="300" value="90"><button class="btn ab" onclick="aplicarFrota('semi')">Aplicar</button><button class="btn gr" onclick="tgEdit('semi')">Editar</button></div><div style="font-size:9px;color:#888;margin-top:3px" id="tot-semi-sub">90 semirreboques</div></div>
+</div>
+<div id="edit-cav" class="ea"><div style="font-size:8px;color:#666;margin-bottom:3px">Um número por linha</div><textarea id="ta-cav"></textarea><div class="ea-act"><button class="btn vd" onclick="salvarNums('cav')">Salvar</button><button class="btn gr" onclick="tgEdit('cav')">Cancelar</button></div></div>
+<div id="edit-semi" class="ea"><div style="font-size:8px;color:#666;margin-bottom:3px">Um número por linha</div><textarea id="ta-semi"></textarea><div class="ea-act"><button class="btn ab" onclick="salvarNums('semi')">Salvar</button><button class="btn gr" onclick="tgEdit('semi')">Cancelar</button></div></div>
+
+<div class="conj-card" id="conj-card"></div>
+
+<div class="metricas-wrap">
+  <div class="met-bloco"><div class="met-bloco-title cav">🚛 Cavalos TTR</div><div class="met-row" id="met-cav"></div></div>
+  <div class="met-bloco"><div class="met-bloco-title semi">🚚 Semirreboques</div><div class="met-row" id="met-semi"></div></div>
+</div>
+
+<div class="charts-row">
+  <div class="cc"><h3 class="cav">Cavalos — Status</h3><div class="dw"><canvas id="cV">-</canvas><div class="dl"><div class="pct" id="p-v">0%</div><div class="sub">disp.</div></div></div><div class="leg" id="lg-v"></div></div>
+  <div class="cc"><h3 class="semi">Semirreboques — Status</h3><div class="dw"><canvas id="cS">-</canvas><div class="dl"><div class="pct" id="p-s">0%</div><div class="sub">disp.</div></div></div><div class="leg" id="lg-s"></div></div>
+</div>
+
+<div class="lnd">
+  <strong>Status:</strong>
+  <span><span class="lsq" style="background:#c8f0a0;border-color:#6ab830"></span>Disponível</span>
+  <span><span class="lsq" style="background:#ffe090;border-color:#c8a000"></span>Preventiva</span>
+  <span><span class="lsq" style="background:#ffd080;border-color:#c07000"></span>Corretiva</span>
+  <span><span class="lsq" style="background:#ffc0b0;border-color:#d04040"></span>Indisponível</span>
+  <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#22aa22;margin-right:2px"></span>Abastecido</span>
+  <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#e02020;margin-right:2px"></span>A abastecer</span>
+  <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#9a1a9a;margin-right:2px"></span>Atrelado</span>
+</div>
+
+<div class="fb">
+  <strong style="font-size:9px;color:#444;align-self:center">Filtrar:</strong>
+  <div><label>Equipe</label><select id="f-eq"><option value="">Todas</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></div>
+  <div><label>Motivo</label><select id="f-mot"><option value="">Todos</option><option>Mecanica</option><option>Eletrica</option><option>TI</option><option>Ar-cond</option><option>Outro</option></select></div>
+  <div><label>Data</label><input type="date" id="f-dat"></div>
+  <div><label>Status</label><select id="f-st"><option value="">Todos</option><option value="prev">Preventiva</option><option value="corr">Corretiva</option><option value="indisp">Indisponivel</option></select></div>
+  <button class="btn vd" onclick="apFiltros()">Filtrar</button>
+  <button class="btn gr" onclick="limpFiltros()">Limpar</button>
+</div>
+
+<div class="two-col">
+  <div class="panel"><div class="ph vd">🚛 Cavalos — Manutenção</div><div class="pb">
+    <div class="tbs" id="tbtn-cav"></div>
+    <div class="ri"><select id="sel-cav"><option value="">Selecionar cavalo...</option></select><input type="text" id="desc-cav" placeholder="Descrição..."><button class="btn vd" onclick="addManut('cav')">+ Entrada</button></div>
+    <div class="lista" id="lst-cav"></div>
+  </div></div>
+  <div class="panel"><div class="ph ab">🚚 Semirreboques — Manutenção</div><div class="pb">
+    <div class="tbs" id="tbtn-semi"></div>
+    <div class="ri"><select id="sel-semi"><option value="">Selecionar semirreboque...</option></select><input type="text" id="desc-semi" placeholder="Descrição..."><button class="btn ab" onclick="addManut('semi')">+ Entrada</button></div>
+    <div class="lista" id="lst-semi"></div>
+  </div></div>
+</div>
+
+<div class="two-col">
+  <div class="panel"><div class="ph vde">🚛 Cavalos — Individual</div><div class="pb">
+    <div class="fgb">
+      <div><label>Status</label><select id="fg-cav-st" onchange="rGrids()"><option value="">Todos</option><option value="disp">Disponível</option><option value="prev">Preventiva</option><option value="corr">Corretiva</option><option value="indisp">Indisponível</option></select></div>
+      <div><label>Abast.</label><select id="fg-cav-fu" onchange="rGrids()"><option value="">Todos</option><option value="ok">Abastecido</option><option value="no">A abastecer</option></select></div>
+      <div><label>Atrelado</label><select id="fg-cav-atr" onchange="rGrids()"><option value="">Todos</option><option value="sim">Com semi</option><option value="nao">Sem semi</option></select></div>
+    </div>
+    <div class="eq-grid" id="grid-cav"></div>
+  </div></div>
+  <div class="panel"><div class="ph abe">🚚 Semirreboques — Individual</div><div class="pb">
+    <div class="fgb">
+      <div><label>Status</label><select id="fg-semi-st" onchange="rGrids()"><option value="">Todos</option><option value="disp">Disponível</option><option value="prev">Preventiva</option><option value="corr">Corretiva</option><option value="indisp">Indisponível</option></select></div>
+      <div><label>Abast.</label><select id="fg-semi-fu" onchange="rGrids()"><option value="">Todos</option><option value="ok">Abastecido</option><option value="no">A abastecer</option></select></div>
+      <div><label>Atrelado</label><select id="fg-semi-atr" onchange="rGrids()"><option value="">Todos</option><option value="sim">Atrelado</option><option value="nao">Livre</option></select></div>
+    </div>
+    <div class="eq-grid" id="grid-semi"></div>
+  </div></div>
+</div>
+
+<div class="panel" style="margin-bottom:10px"><div class="ph am2">🔔 Fila de Liberação — A Retirar da Manutenção</div><div class="pb" id="fila-lib"><div class="aviso">Nenhum aguardando liberação</div></div></div>
+
+<div class="atr-wrap">
+  <div class="ph lj">🔗 Atrelamento TTR — Cavalo / Semirreboque</div>
+  <div class="pb">
+    <div class="ri" style="margin-bottom:8px">
+      <select id="atr-cav-sel" style="font-size:10px;padding:5px 7px;border-radius:6px;border:1px solid var(--brd);flex:1"><option value="">Selecionar cavalo...</option></select>
+      <span style="font-size:16px;color:#9a1a9a;font-weight:700;padding:0 4px">+</span>
+      <select id="atr-semi-sel" style="font-size:10px;padding:5px 7px;border-radius:6px;border:1px solid var(--brd);flex:1"><option value="">Selecionar semirreboque...</option></select>
+      <button class="btn lj" onclick="atrelar()">Atrelar</button>
+      <button class="btn gr" onclick="desatrelarTodos()">Limpar</button>
+    </div>
+    <div class="atr-list" id="atr-lista"><div class="aviso">Nenhum conjunto atrelado</div></div>
+  </div>
+</div>
+</div>
+
+<!-- ════ RELATÓRIOS ════ -->
+<div id="tab-relatorios" class="tab-content">
+<div class="rh">
+  <div><h2>Relatórios Gerenciais</h2><div style="font-size:8px;opacity:.75">Brasil Terminal Portuário — TTR</div></div>
+  <div class="rh-btns">
+    <button class="btn pdf" onclick="gerarPDF()">📄 PDF</button>
+    <button class="btn az" onclick="baixarCSV()">CSV</button>
+    <button class="btn vd" onclick="enviarEmail()">Email</button>
+    <button class="btn rd" onclick="limparStorage()" style="font-size:9px">🗑 Limpar</button>
+    <div class="clock" id="clock-r" style="color:#fff;font-size:12px;font-weight:700;background:rgba(255,255,255,.15);padding:4px 10px;border-radius:20px">00:00:00</div>
+  </div>
+</div>
+<div class="rfb">
+  <strong style="font-size:9px;color:#444;align-self:center">Filtrar:</strong>
+  <div><label>Tipo</label><select id="rf-tp"><option value="">Todos</option><option value="cav">Cavalos</option><option value="semi">Semirreboques</option></select></div>
+  <div><label>Equipe</label><select id="rf-eq"><option value="">Todas</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></div>
+  <div><label>Motivo</label><select id="rf-mot"><option value="">Todos</option><option>Mecanica</option><option>Eletrica</option><option>TI</option><option>Ar-cond</option><option>Outro</option></select></div>
+  <div><label>Status</label><select id="rf-st"><option value="">Todos</option><option value="prev">Preventiva</option><option value="corr">Corretiva</option><option value="indisp">Indisponivel</option><option value="liberado">Liberado</option></select></div>
+  <div><label>De</label><input type="date" id="rf-di"></div>
+  <div><label>Até</label><input type="date" id="rf-df"></div>
+  <button class="btn vd" onclick="renderRel()">Atualizar</button>
+  <button class="btn gr" onclick="limpRel()">Limpar</button>
+</div>
+<div class="rel-met-wrap" id="rel-met-wrap"></div>
+<div class="tmr-g">
+  <div class="tmr-c"><h3>Tempo médio em manutenção</h3><div class="tv" id="tm-manut">—</div><div class="ts">entrada até liberação</div></div>
+  <div class="tmr-c"><h3>Tempo médio na fila</h3><div class="tv" id="tm-fila">—</div><div class="ts">liberação até saída</div></div>
+  <div class="tmr-c"><h3>Tempo médio total</h3><div class="tv" id="tm-total">—</div><div class="ts">entrada até saída</div></div>
+</div>
+<div class="bi-g">
+  <div class="bi-c"><h3>Cavalos por Status</h3><div style="position:relative;height:130px"><canvas id="rC-cav">-</canvas></div><div class="leg" id="rL-cav"></div></div>
+  <div class="bi-c"><h3>Semirreboques por Status</h3><div style="position:relative;height:130px"><canvas id="rC-semi">-</canvas></div><div class="leg" id="rL-semi"></div></div>
+  <div class="bi-c"><h3>Por Motivo</h3><div style="position:relative;height:130px"><canvas id="rC-mot">-</canvas></div><div class="leg" id="rL-mot"></div></div>
+  <div class="bi-c"><h3>Ocorrências por Motivo</h3><div class="motivos-bar" id="mot-bar"></div></div>
+  <div class="bi-c" style="grid-column:span 2"><h3>Tempo de parada por Equipamento (min)</h3><div style="position:relative;height:120px"><canvas id="rC-tmr">-</canvas></div></div>
+</div>
+<div class="bi-c" style="margin-bottom:10px"><h3 style="margin-bottom:8px">Ocorrências por Equipe</h3><div style="position:relative;height:110px"><canvas id="rC-eq">-</canvas></div></div>
+<div class="rtw"><h3>Histórico Completo de Transações</h3>
+<div class="rt-wrap">
+<table class="rt">
+  <thead><tr>
+    <th>Equip.</th><th>Tipo</th><th>Motivo</th><th>Status</th><th>Equipe</th>
+    <th>Entrada</th><th>Liberação</th><th>Saída</th>
+    <th>T.Manut</th><th>T.Fila</th><th>T.Total</th><th>Situação</th>
+  </tr></thead>
+  <tbody id="rel-tbody"></tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script>
+// ── PWA Service Worker ──
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').catch(e=>console.log('SW:',e));
+}
+
+// ── PWA Install prompt ──
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();deferredPrompt=e;
+  document.getElementById('install-banner').classList.add('show');
+});
+document.getElementById('btn-install').onclick=async()=>{
+  if(!deferredPrompt)return;
+  deferredPrompt.prompt();const{outcome}=await deferredPrompt.userChoice;
+  deferredPrompt=null;document.getElementById('install-banner').classList.remove('show');
+};
+document.getElementById('btn-install-dismiss').onclick=()=>document.getElementById('install-banner').classList.remove('show');
+
+// ── Constantes ──
+const MOTIVOS=['Mecanica','Eletrica','TI','Ar-cond','Outro'];
+const SL={prev:'Preventiva',corr:'Corretiva',indisp:'Indisponivel',disp:'Disponivel',liberado:'Liberado'};
+const SC={prev:'p',corr:'c',indisp:'i',disp:''};
+const STCLR={prev:'#c8a000',corr:'#c07000',indisp:'#c02020',disp:'#3a8a18',liberado:'#1a5a9a'};
+const CLC=['#3a8a18','#c8a000','#c07000','#c02020'];
+const CLL=['Disp','Prev','Corr','Indisp'];
+const LS_KEY='btp_ttr_v1';
+const isMobile=()=>window.innerWidth<=480;
+
+// ── Estado ──
+let H={
+  numsCav:Array.from({length:86},(_,i)=>`C-${1001+i}`),
+  numsSemi:Array.from({length:90},(_,i)=>`S-${5001+i}`),
+  manutCav:[],manutSemi:[],filaLib:[],historico:[],
+  motivoCav:'Mecanica',motivoSemi:'Mecanica',
+  fuel:{},eqStatus:{},atrelamentos:{},
+  filtros:{eq:'',mot:'',dat:'',st:''}
+};
+let charts={},rC={};
+let lastFR=new Date().toDateString();
+let _mn='',_mt='';
+
+// ── localStorage ──
+function salvarLS(){
+  try{
+    localStorage.setItem(LS_KEY,JSON.stringify({
+      numsCav:H.numsCav,numsSemi:H.numsSemi,
+      manutCav:H.manutCav,manutSemi:H.manutSemi,
+      filaLib:H.filaLib,historico:H.historico,
+      atrelamentos:H.atrelamentos,eqStatus:H.eqStatus,fuel:H.fuel,
+      motivoCav:H.motivoCav,motivoSemi:H.motivoSemi,
+      headerData:{
+        data:document.getElementById('data-op').value,
+        turno:document.getElementById('turno-sel').value,
+        equipe:document.getElementById('equipe-sel').value,
+        facil:document.getElementById('facil-inp').value
+      },savedAt:Date.now()
+    }));
+    mostrarSalvo();
+  }catch(e){}
+}
+function carregarLS(){
+  try{
+    const raw=localStorage.getItem(LS_KEY);if(!raw)return false;
+    const p=JSON.parse(raw);
+    H.numsCav=p.numsCav||H.numsCav;H.numsSemi=p.numsSemi||H.numsSemi;
+    H.manutCav=p.manutCav||[];H.manutSemi=p.manutSemi||[];
+    H.filaLib=p.filaLib||[];H.historico=p.historico||[];
+    H.atrelamentos=p.atrelamentos||{};H.eqStatus=p.eqStatus||{};H.fuel=p.fuel||{};
+    H.motivoCav=p.motivoCav||'Mecanica';H.motivoSemi=p.motivoSemi||'Mecanica';
+    if(p.headerData){
+      document.getElementById('data-op').value=p.headerData.data||'';
+      document.getElementById('turno-sel').value=p.headerData.turno||'07x13';
+      document.getElementById('equipe-sel').value=p.headerData.equipe||'';
+      document.getElementById('facil-inp').value=p.headerData.facil||'';
+    }
+    document.getElementById('tot-cav-inp').value=H.numsCav.length;
+    document.getElementById('tot-cav-sub').textContent=H.numsCav.length+' cavalos';
+    document.getElementById('tot-semi-inp').value=H.numsSemi.length;
+    document.getElementById('tot-semi-sub').textContent=H.numsSemi.length+' semirreboques';
+    return true;
+  }catch(e){return false;}
+}
+let _st=null;
+function agendarSave(){clearTimeout(_st);_st=setTimeout(salvarLS,800);}
+let _sbt=null;
+function mostrarSalvo(){const b=document.getElementById('save-bar');b.classList.add('show');clearTimeout(_sbt);_sbt=setTimeout(()=>b.classList.remove('show'),2000);}
+function limparStorage(){if(!confirm('Apagar todos os dados salvos e reiniciar?'))return;localStorage.removeItem(LS_KEY);location.reload();}
+
+// ── UI helpers ──
+function sw(t){
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',i===(t==='painel'?0:1)));
+  document.querySelectorAll('.tab-content').forEach(el=>el.classList.toggle('active',el.id===`tab-${t}`));
+  if(t==='relatorios')setTimeout(renderRel,100);
+}
+function fmtMs(ms){if(!ms||ms<=0)return'—';const m=Math.floor(ms/60000),h=Math.floor(m/60),mm=m%60;return h>0?`${h}h${mm.toString().padStart(2,'0')}m`:`${mm}m`;}
+function ts(){
+  const d=new Date(),eq=document.getElementById('equipe-sel').value||'—',fac=document.getElementById('facil-inp').value.trim()||'—',turno=document.getElementById('turno-sel').value;
+  return{eq,fac,turno,dt:d.toLocaleDateString('pt-BR'),hr:d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),full:`${d.toLocaleDateString('pt-BR')} ${d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} Eq.${eq} ${fac} ${turno}`,tsMs:d.getTime()};
+}
+
+// ── Tooltip (desktop) / toque (mobile) ──
+const TT=document.getElementById('eq-tooltip');
+function showTT(el,lines){if(isMobile())return;TT.innerHTML=lines.join('<br>');TT.style.display='block';moveTT(el);}
+function moveTT(el){const r=el.getBoundingClientRect();TT.style.left=(r.left+r.width/2-TT.offsetWidth/2)+'px';TT.style.top=(r.top-TT.offsetHeight-8)+'px';}
+function hideTT(){TT.style.display='none';}
+
+// ── Frota ──
+function aplicarFrota(t){
+  const n=parseInt(document.getElementById(`tot-${t}-inp`).value)||0,arr=t==='cav'?H.numsCav:H.numsSemi,diff=n-arr.length;
+  if(diff>0){const b=t==='cav'?'C':'S';for(let i=0;i<diff;i++)arr.push(`${b}-${arr.length+1}`);}
+  else if(diff<0)arr.splice(n);
+  document.getElementById(`tot-${t}-sub`).textContent=arr.length+(t==='cav'?' cavalos':' semirreboques');
+  bSelects();bAtrSelects();rGrids();rMetricas();uCharts();agendarSave();
+}
+function tgEdit(t){const el=document.getElementById(`edit-${t}`);if(el.style.display==='block'){el.style.display='none';return;}document.getElementById(`ta-${t}`).value=(t==='cav'?H.numsCav:H.numsSemi).join('\n');el.style.display='block';}
+function salvarNums(t){const arr=document.getElementById(`ta-${t}`).value.split('\n').map(s=>s.trim()).filter(s=>s);if(t==='cav'){H.numsCav=arr;document.getElementById('tot-cav-inp').value=arr.length;document.getElementById('tot-cav-sub').textContent=arr.length+' cavalos';}else{H.numsSemi=arr;document.getElementById('tot-semi-inp').value=arr.length;document.getElementById('tot-semi-sub').textContent=arr.length+' semirreboques';}tgEdit(t);bSelects();bAtrSelects();rGrids();rMetricas();uCharts();agendarSave();}
+
+// ── Atrelamento ──
+function semiDoCav(c){return H.atrelamentos[c]||null;}
+function cavDoSemi(s){return Object.keys(H.atrelamentos).find(c=>H.atrelamentos[c]===s)||null;}
+function bAtrSelects(){
+  const sc=document.getElementById('atr-cav-sel'),ss=document.getElementById('atr-semi-sel');
+  sc.innerHTML='<option value="">Selecionar cavalo...</option>'+H.numsCav.map(n=>`<option value="${n}">${n}${H.atrelamentos[n]?' + '+H.atrelamentos[n]:''}</option>`).join('');
+  ss.innerHTML='<option value="">Selecionar semirreboque...</option>'+H.numsSemi.map(n=>{const c=cavDoSemi(n);return`<option value="${n}">${n}${c?' + '+c:''}</option>`;}).join('');
+}
+function atrelar(){const cav=document.getElementById('atr-cav-sel').value,semi=document.getElementById('atr-semi-sel').value;if(!cav||!semi)return alert('Selecione cavalo e semirreboque.');const oldSemi=H.atrelamentos[cav];if(oldSemi)delete H.atrelamentos[cav];const oldCav=cavDoSemi(semi);if(oldCav)delete H.atrelamentos[oldCav];H.atrelamentos[cav]=semi;bAtrSelects();rAtrLista();rGrids();agendarSave();}
+function desatrelar(cav){delete H.atrelamentos[cav];bAtrSelects();rAtrLista();rGrids();agendarSave();}
+function desatrelarTodos(){H.atrelamentos={};bAtrSelects();rAtrLista();rGrids();agendarSave();}
+function rAtrLista(){const el=document.getElementById('atr-lista'),pares=Object.entries(H.atrelamentos);if(!pares.length){el.innerHTML='<div class="aviso">Nenhum conjunto atrelado</div>';return;}el.innerHTML=pares.map(([c,s])=>`<div class="atr-item"><span class="cv">🚛 ${c}</span><span style="color:#9a1a9a">+</span><span class="sm">🚚 ${s}</span><span style="flex:1"></span><button class="batr" onclick="desatrelar('${c}')">Desatrelar</button></div>`).join('');}
+
+// ── Selects ──
+function bSelects(){['cav','semi'].forEach(t=>{const el=document.getElementById(`sel-${t}`),nums=t==='cav'?H.numsCav:H.numsSemi,emM=(t==='cav'?H.manutCav:H.manutSemi).map(m=>m.num),emF=H.filaLib.map(f=>f.num);el.innerHTML='<option value="">Selecionar...</option>'+nums.filter(n=>!emM.includes(n)&&!emF.includes(n)).map(n=>`<option value="${n}">${n}</option>`).join('');});}
+function bMotivoBtns(t){const grp=document.getElementById(`tbtn-${t}`),sel=t==='cav'?H.motivoCav:H.motivoSemi;grp.innerHTML='';MOTIVOS.forEach(m=>{const b=document.createElement('button');b.className='tbtn'+(sel===m?(t==='cav')?' av':' ab':'');b.textContent=m;b.onclick=()=>{if(t==='cav')H.motivoCav=m;else H.motivoSemi=m;bMotivoBtns(t);agendarSave();};grp.appendChild(b);});}
+
+// ── Manutenção ──
+function addManut(t){
+  const sel=document.getElementById(`sel-${t}`),desc=document.getElementById(`desc-${t}`);
+  if(!sel.value)return alert('Selecione um equipamento.');
+  const motivo=t==='cav'?H.motivoCav:H.motivoSemi,arr=t==='cav'?H.manutCav:H.manutSemi,num=sel.value,meta=ts();
+  const item={id:Date.now(),num,motivo,desc:desc.value.trim()||'—',ts:meta.full,eq:meta.eq,fac:meta.fac,turno:meta.turno,dt:meta.dt,hr:meta.hr,tsEntrada:meta.tsMs,tsLiberacao:null,tsSaida:null,tipoEq:t,status:'prev',situacao:'Em manutencao'};
+  arr.push(item);H.eqStatus[num]='prev';H.historico.push(item);
+  desc.value='';bSelects();rGrids();rListas();rFila();rMetricas();uCharts();agendarSave();
+}
+function apFiltros(){H.filtros={eq:document.getElementById('f-eq').value,mot:document.getElementById('f-mot').value,dat:document.getElementById('f-dat').value,st:document.getElementById('f-st').value};rListas();}
+function limpFiltros(){H.filtros={eq:'',mot:'',dat:'',st:''};['f-eq','f-mot','f-st'].forEach(id=>document.getElementById(id).value='');document.getElementById('f-dat').value='';rListas();}
+function filtArr(arr){return arr.filter(m=>{if(H.filtros.eq&&m.eq!==H.filtros.eq)return false;if(H.filtros.mot&&m.motivo!==H.filtros.mot)return false;if(H.filtros.st&&(H.eqStatus[m.num]||m.status)!==H.filtros.st)return false;if(H.filtros.dat){const fd=new Date(H.filtros.dat).toLocaleDateString('pt-BR');if(m.dt!==fd)return false;}return true;});}
+function rListas(){rLista('lst-cav',H.manutCav,'cav');rLista('lst-semi',H.manutSemi,'semi');}
+function rLista(id,arr,t){const el=document.getElementById(id),fil=filtArr(arr);if(!fil.length){el.innerHTML='<div class="aviso">Nenhum resultado</div>';return;}el.innerHTML=fil.map(m=>{const i=arr.indexOf(m),st=H.eqStatus[m.num]||'prev',bcl=st==='prev'?'am':st==='corr'?'co':st==='indisp'?'rd':'mk',elapsed=m.tsEntrada?fmtMs(Date.now()-m.tsEntrada):'—';return`<div class="im"><span class="ne ${t==='semi'?'ab':''}">${m.num}</span><span class="badge" style="background:#888">${m.motivo}</span><span class="badge ${bcl}">${SL[st]}</span><span class="desc" title="${m.desc}">${m.desc}</span><span class="tmr">${elapsed}</span><div style="display:flex;gap:3px;margin-left:auto"><button class="stbtn ${st==='prev'?'p':''}" onclick="altSt('${t}',${i},'prev')">Prev</button><button class="stbtn ${st==='corr'?'c':''}" onclick="altSt('${t}',${i},'corr')">Corr</button><button class="stbtn ${st==='indisp'?'i':''}" onclick="altSt('${t}',${i},'indisp')">Ind</button><button class="blib" onclick="mFila('${t}',${i})">Liberar</button></div><span class="meta">${m.ts}</span></div>`;}).join('');}
+function altSt(t,i,ns){const arr=t==='cav'?H.manutCav:H.manutSemi;arr[i].status=ns;H.eqStatus[arr[i].num]=ns;const h=H.historico.find(x=>x.id===arr[i].id);if(h)h.status=ns;rListas();rGrids();rMetricas();uCharts();agendarSave();}
+function mFila(t,i){const arr=t==='cav'?H.manutCav:H.manutSemi,item=arr.splice(i,1)[0];item.tsLiberacao=Date.now();item.hrLib=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});item.situacao='Na fila';H.filaLib.push(item);const h=H.historico.find(x=>x.id===item.id);if(h){h.tsLiberacao=item.tsLiberacao;h.hrLib=item.hrLib;h.situacao='Na fila';}bSelects();rGrids();rListas();rFila();rMetricas();uCharts();agendarSave();}
+function confirmarSaida(i){const item=H.filaLib.splice(i,1)[0];item.tsSaida=Date.now();item.hrSaida=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});item.situacao='Liberado';item.status='liberado';delete H.eqStatus[item.num];const h=H.historico.find(x=>x.id===item.id);if(h){h.tsSaida=item.tsSaida;h.hrSaida=item.hrSaida;h.situacao='Liberado';h.status='liberado';}bSelects();rGrids();rFila();rMetricas();uCharts();agendarSave();}
+function rFila(){const el=document.getElementById('fila-lib');if(!H.filaLib.length){el.innerHTML='<div class="aviso">Nenhum aguardando liberação</div>';return;}el.innerHTML=H.filaLib.map((f,i)=>{const elapsed=f.tsLiberacao?fmtMs(Date.now()-f.tsLiberacao):'—',st=H.eqStatus[f.num]||f.status||'prev',bcl=st==='prev'?'am':st==='corr'?'co':st==='indisp'?'rd':'mk';return`<div class="fi"><span class="ne">${f.num}</span><span class="badge ${bcl}">${SL[st]}</span><span style="font-size:8px;color:#555">${f.tipoEq==='cav'?'Cav':'Semi'} · ${f.motivo}</span><span style="font-size:8px;color:#888;font-style:italic;flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0">${f.desc}</span><span class="tmr" style="color:var(--am)">Fila: ${elapsed}</span><button class="bconf" onclick="confirmarSaida(${i})">✓ Saída</button></div>`;}).join('');}
+
+// ── Grid individual ──
+function eqSt(num){return H.eqStatus[num]||'disp';}
+function rGrids(){rGrid('grid-cav',H.numsCav,'cav');rGrid('grid-semi',H.numsSemi,'semi');}
+function rGrid(id,nums,t){
+  const el=document.getElementById(id),fSt=document.getElementById(`fg-${t}-st`).value,fFu=document.getElementById(`fg-${t}-fu`).value,fAtr=document.getElementById(`fg-${t}-atr`).value;
+  el.innerHTML='';
+  nums.forEach(n=>{
+    const st=eqSt(n),fu=H.fuel[n],atrSemi=t==='cav'?semiDoCav(n):null,atrCav=t==='semi'?cavDoSemi(n):null,temAtr=t==='cav'?!!atrSemi:!!atrCav;
+    if(fSt&&st!==fSt)return;if(fFu==='ok'&&!fu)return;if(fFu==='no'&&fu)return;if(fAtr==='sim'&&!temAtr)return;if(fAtr==='nao'&&temAtr)return;
+    const lbl={disp:'OK',prev:'PREV',corr:'CORR',indisp:'INDISP'}[st];
+    const lines=[`<b>${n}</b> — ${SL[st]}`,fu?'✅ Abastecido':'⛽ A abastecer'];
+    if(t==='cav'&&atrSemi)lines.push(`🚚 Semi: ${atrSemi}`);if(t==='semi'&&atrCav)lines.push(`🚛 Cavalo: ${atrCav}`);
+    if(!temAtr)lines.push(t==='cav'?'Sem semi atrelado':'Livre');
+    const div=document.createElement('div');div.className=`eq ${st}`;
+    div.innerHTML=`<span style="font-size:6px;font-weight:700;text-align:center;line-height:1.2">${n}</span><span style="font-size:5px;opacity:.8">${lbl}</span><span class="fd ${fu?'ok':''}"></span>${temAtr?'<span class="atr-dot"></span>':''}`;
+    div.addEventListener('mouseenter',()=>showTT(div,lines));div.addEventListener('mousemove',()=>moveTT(div));div.addEventListener('mouseleave',hideTT);
+    div.onclick=()=>{hideTT();abrirModal(n,t);};el.appendChild(div);
+  });
+}
+
+// ── Modal ──
+function abrirModal(num,t){
+  _mn=num;_mt=t;const st=eqSt(num),fu=H.fuel[num],atrSemi=t==='cav'?semiDoCav(num):null,atrCav=t==='semi'?cavDoSemi(num):null;
+  document.getElementById('modal-title').textContent=`${t==='cav'?'🚛 Cavalo':'🚚 Semi'}: ${num}`;
+  document.getElementById('modal-info').textContent=`Status: ${SL[st]} | ${fu?'✅ Abastecido':'⛽ A abastecer'}`;
+  const emM=(t==='cav'?H.manutCav:H.manutSemi).find(m=>m.num===num),opts=emM?['prev','corr','indisp']:['prev','corr','indisp','disp'],btns=document.getElementById('modal-st-btns');
+  btns.innerHTML='';
+  opts.forEach(s=>{const b=document.createElement('button');b.className=`stbtn ${st===s?SC[s]:''}`;b.textContent=SL[s];b.style.cssText='font-size:10px;padding:6px 10px;min-height:34px';b.onclick=()=>{H.eqStatus[num]=s;if(emM){emM.status=s;const h=H.historico.find(x=>x.id===emM.id);if(h)h.status=s;}rListas();rGrids();rMetricas();uCharts();agendarSave();document.getElementById('modal-info').textContent=`Status: ${SL[s]} | ${H.fuel[num]?'✅ Abastecido':'⛽ A abastecer'}`;btns.querySelectorAll('.stbtn').forEach((bb,ii)=>{bb.className=`stbtn ${opts[ii]===s?SC[s]:''}`;});};btns.appendChild(b);});
+  const atrLabel=document.getElementById('modal-atr-label'),atrInfo=document.getElementById('modal-atr-info');
+  if(t==='cav'&&atrSemi){atrLabel.textContent='🔗 Conjunto atrelado';atrInfo.textContent=`Semirreboque: ${atrSemi}`;atrInfo.style.display='block';}
+  else if(t==='semi'&&atrCav){atrLabel.textContent='🔗 Conjunto atrelado';atrInfo.textContent=`Cavalo: ${atrCav}`;atrInfo.style.display='block';}
+  else{atrLabel.textContent='';atrInfo.style.display='none';}
+  document.getElementById('modal-overlay').classList.add('show');
+}
+function setFuel(v){H.fuel[_mn]=v;rGrids();agendarSave();document.getElementById('modal-info').textContent=`Status: ${SL[eqSt(_mn)]} | ${v?'✅ Abastecido':'⛽ A abastecer'}`;}
+function fModal(){document.getElementById('modal-overlay').classList.remove('show');}
+document.getElementById('modal-overlay').addEventListener('click',function(e){if(e.target===this)fModal();});
+
+// ── Métricas ──
+function calcTotais(t){const nums=t==='cav'?H.numsCav:H.numsSemi;let disp=0,prev=0,corr=0,indisp=0;nums.forEach(n=>{const s=eqSt(n);if(s==='disp')disp++;else if(s==='prev')prev++;else if(s==='corr')corr++;else if(s==='indisp')indisp++;});return{disp,prev,corr,indisp,total:disp+prev+corr+indisp,manut:prev+corr+indisp};}
+function rMetricas(){
+  const cv=calcTotais('cav'),sm=calcTotais('semi'),conj=Math.min(cv.disp,sm.disp),totConj=Math.min(cv.total,sm.total),pct=totConj>0?Math.round(conj/totConj*100):0,cPct=cv.total>0?Math.round(cv.disp/cv.total*100):0,sPct=sm.total>0?Math.round(sm.disp/sm.total*100):0;
+  document.getElementById('conj-card').innerHTML=`<div class="left"><div class="lbl">Conjuntos disponíveis</div><div class="big">${conj}</div><div class="sub">de ${totConj} possíveis</div></div><div class="right"><div class="pct">${pct}%</div><div class="pct-lbl">da frota operacional</div><div class="bars"><div class="bar-row"><span class="bl">Cavalos</span><div class="bar-bg"><div class="bar-fill" style="width:${cPct}%"></div></div><span>${cv.disp}</span></div><div class="bar-row"><span class="bl">Semirreboques</span><div class="bar-bg"><div class="bar-fill" style="width:${sPct}%"></div></div><span>${sm.disp}</span></div></div></div>`;
+  document.getElementById('met-cav').innerHTML=`<div class="mc"><div class="n">${cv.disp}<span style="font-size:8px;color:#aaa">/${cv.total}</span></div><div class="lbl">Disp.</div></div><div class="mc tot"><div class="n">${cv.manut}</div><div class="lbl">Manut.</div></div><div class="mc am"><div class="n">${cv.prev}</div><div class="lbl">Prev.</div></div><div class="mc co"><div class="n">${cv.corr}</div><div class="lbl">Corr.</div></div>`;
+  document.getElementById('met-semi').innerHTML=`<div class="mc ab"><div class="n" style="color:var(--ab)">${sm.disp}<span style="font-size:8px;color:#aaa">/${sm.total}</span></div><div class="lbl">Disp.</div></div><div class="mc tot"><div class="n">${sm.manut}</div><div class="lbl">Manut.</div></div><div class="mc am"><div class="n">${sm.prev}</div><div class="lbl">Prev.</div></div><div class="mc co"><div class="n">${sm.corr}</div><div class="lbl">Corr.</div></div>`;
+}
+
+// ── Gráficos ──
+function bLeg(id,l,c,d){document.getElementById(id).innerHTML=l.map((x,i)=>`<span><span class="ld" style="background:${c[i]}"></span>${x} ${d[i]}</span>`).join('');}
+function mkDonut(id,data,pid,lid){document.getElementById(pid).textContent=Math.round(data[0]/(data.reduce((a,b)=>a+b,0)||1)*100)+'%';bLeg(lid,CLL,CLC,data);return new Chart(document.getElementById(id),{type:'doughnut',data:{labels:CLL,datasets:[{data,backgroundColor:CLC,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{display:false}}}});}
+function bCharts(){const cv=calcTotais('cav'),sm=calcTotais('semi');charts.v=mkDonut('cV',[cv.disp,cv.prev,cv.corr,cv.indisp],'p-v','lg-v');charts.s=mkDonut('cS',[sm.disp,sm.prev,sm.corr,sm.indisp],'p-s','lg-s');}
+function uCharts(){const cv=calcTotais('cav'),sm=calcTotais('semi');const upd=(ch,data,pid,lid)=>{ch.data.datasets[0].data=data;ch.update();document.getElementById(pid).textContent=Math.round(data[0]/(data.reduce((a,b)=>a+b,0)||1)*100)+'%';bLeg(lid,CLL,CLC,data);};upd(charts.v,[cv.disp,cv.prev,cv.corr,cv.indisp],'p-v','lg-v');upd(charts.s,[sm.disp,sm.prev,sm.corr,sm.indisp],'p-s','lg-s');rMetricas();}
+
+// ── Relatório ──
+function getFiltRel(){const ft=document.getElementById('rf-tp').value,fe=document.getElementById('rf-eq').value,fm=document.getElementById('rf-mot').value,fs=document.getElementById('rf-st').value,di=document.getElementById('rf-di').value,df=document.getElementById('rf-df').value;return H.historico.filter(h=>{if(ft&&h.tipoEq!==ft)return false;if(fe&&h.eq!==fe)return false;if(fm&&h.motivo!==fm)return false;if(fs&&h.status!==fs)return false;if(di&&h.tsEntrada){const d=new Date(di);d.setHours(0,0,0,0);if(h.tsEntrada<d.getTime())return false;}if(df&&h.tsEntrada){const d=new Date(df);d.setHours(23,59,59,999);if(h.tsEntrada>d.getTime())return false;}return true;});}
+function limpRel(){['rf-tp','rf-eq','rf-mot','rf-st'].forEach(id=>document.getElementById(id).value='');document.getElementById('rf-di').value='';document.getElementById('rf-df').value='';renderRel();}
+function mkOrUpd(cid,lid,tipo,labels,data,colors,store,key){if(store[key]){store[key].data.labels=labels;store[key].data.datasets[0].data=data;store[key].update();}else{store[key]=new Chart(document.getElementById(cid),{type:tipo,data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:tipo==='doughnut'?'60%':undefined,plugins:{legend:{display:false}}}});}document.getElementById(lid).innerHTML=labels.map((l,i)=>`<span><span class="ld" style="background:${colors[i]}"></span>${l} ${data[i]}</span>`).join('');}
+function renderRel(){
+  const hist=getFiltRel(),cv=calcTotais('cav'),sm=calcTotais('semi');
+  const semF=!document.getElementById('rf-tp').value&&!document.getElementById('rf-eq').value&&!document.getElementById('rf-mot').value&&!document.getElementById('rf-st').value&&!document.getElementById('rf-di').value&&!document.getElementById('rf-df').value;
+  const hCP=hist.filter(h=>h.tipoEq==='cav'&&h.status==='prev'&&h.situacao!=='Liberado').length,hCC=hist.filter(h=>h.tipoEq==='cav'&&h.status==='corr'&&h.situacao!=='Liberado').length,hCI=hist.filter(h=>h.tipoEq==='cav'&&h.status==='indisp'&&h.situacao!=='Liberado').length;
+  const hSP=hist.filter(h=>h.tipoEq==='semi'&&h.status==='prev'&&h.situacao!=='Liberado').length,hSC=hist.filter(h=>h.tipoEq==='semi'&&h.status==='corr'&&h.situacao!=='Liberado').length,hSI=hist.filter(h=>h.tipoEq==='semi'&&h.status==='indisp'&&h.situacao!=='Liberado').length;
+  document.getElementById('rel-met-wrap').innerHTML=`<div class="rel-bloco"><div class="rel-bloco-title cav">🚛 Cavalos TTR</div><div class="rel-row"><div class="rc"><div class="rn">${semF?cv.disp:hist.filter(h=>h.tipoEq==='cav').length}</div><div class="rl">${semF?'Disp.':'Reg.'}</div></div><div class="rc tot"><div class="rn">${semF?cv.manut:hCP+hCC+hCI}</div><div class="rl">Manut.</div></div><div class="rc am"><div class="rn" style="color:#7a5800">${semF?cv.prev:hCP}</div><div class="rl">Prev.</div></div><div class="rc co"><div class="rn">${semF?cv.corr:hCC}</div><div class="rl">Corr.</div></div></div></div><div class="rel-bloco"><div class="rel-bloco-title semi">🚚 Semirreboques</div><div class="rel-row"><div class="rc ab"><div class="rn" style="color:var(--ab)">${semF?sm.disp:hist.filter(h=>h.tipoEq==='semi').length}</div><div class="rl">${semF?'Disp.':'Reg.'}</div></div><div class="rc tot"><div class="rn">${semF?sm.manut:hSP+hSC+hSI}</div><div class="rl">Manut.</div></div><div class="rc am"><div class="rn" style="color:#7a5800">${semF?sm.prev:hSP}</div><div class="rl">Prev.</div></div><div class="rc co"><div class="rn">${semF?sm.corr:hSC}</div><div class="rl">Corr.</div></div></div></div>`;
+  mkOrUpd('rC-cav','rL-cav','doughnut',CLL,[cv.disp,cv.prev,cv.corr,cv.indisp],CLC,rC,'rcav');
+  mkOrUpd('rC-semi','rL-semi','doughnut',CLL,[sm.disp,sm.prev,sm.corr,sm.indisp],CLC,rC,'rsemi');
+  const motCt={};MOTIVOS.forEach(m=>motCt[m]=0);H.historico.forEach(h=>{if(motCt[h.motivo]!==undefined)motCt[h.motivo]++;});
+  const motL=Object.keys(motCt),motD=Object.values(motCt),motC=['#3a8a18','#1a5a9a','#5a1a9a','#1a8a7a','#7a5a1a'];
+  mkOrUpd('rC-mot','rL-mot','pie',motL,motD,motC,rC,'rm');
+  const maxMot=Math.max(...motD,1);document.getElementById('mot-bar').innerHTML=motL.map((l,i)=>`<div class="mot-r"><span class="ml">${l}</span><div class="mb"><div class="mf" style="width:${Math.round(motD[i]/maxMot*100)}%;background:${motC[i]}"></div></div><span class="mv">${motD[i]}</span></div>`).join('');
+  const eq5=['A','B','C','D','E'],eqD=eq5.map(e=>H.historico.filter(h=>h.eq===e).length);
+  if(rC.eq){rC.eq.data.datasets[0].data=eqD;rC.eq.update();}else{rC.eq=new Chart(document.getElementById('rC-eq'),{type:'bar',data:{labels:eq5.map(e=>`Eq.${e}`),datasets:[{data:eqD,backgroundColor:['#3a8a18','#c45a0a','#c8a000','#1a5a9a','#5a1a9a'],borderWidth:0,borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}});}
+  const libT=hist.filter(h=>h.tsSaida&&h.tsEntrada).slice(-8),tmrL=libT.map(h=>h.num),tmrD=libT.map(h=>Math.round((h.tsSaida-h.tsEntrada)/60000));
+  if(rC.tmr){rC.tmr.data.labels=tmrL;rC.tmr.data.datasets[0].data=tmrD;rC.tmr.update();}else{rC.tmr=new Chart(document.getElementById('rC-tmr'),{type:'bar',data:{labels:tmrL,datasets:[{data:tmrD,backgroundColor:libT.map(h=>h.tipoEq==='cav'?'#3a8a18':'#c45a0a'),borderWidth:0,borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});}
+  const tmManut=hist.filter(h=>h.tsLiberacao&&h.tsEntrada).map(h=>h.tsLiberacao-h.tsEntrada),tmFila=hist.filter(h=>h.tsSaida&&h.tsLiberacao).map(h=>h.tsSaida-h.tsLiberacao),tmTot=hist.filter(h=>h.tsSaida&&h.tsEntrada).map(h=>h.tsSaida-h.tsEntrada),avg=a=>a.length?Math.round(a.reduce((x,b)=>x+b,0)/a.length):null;
+  document.getElementById('tm-manut').textContent=fmtMs(avg(tmManut));document.getElementById('tm-fila').textContent=fmtMs(avg(tmFila));document.getElementById('tm-total').textContent=fmtMs(avg(tmTot));
+  rTabela(hist);
+}
+function rTabela(hist){
+  const tbody=document.getElementById('rel-tbody');
+  if(!hist.length){tbody.innerHTML='<tr><td colspan="12" style="text-align:center;color:#bbb;padding:12px">Sem registros</td></tr>';return;}
+  tbody.innerHTML=hist.slice().reverse().map(h=>{const hSt=h.status||'prev',tmM=h.tsEntrada&&h.tsLiberacao?fmtMs(h.tsLiberacao-h.tsEntrada):'—',tmF=h.tsLiberacao&&h.tsSaida?fmtMs(h.tsSaida-h.tsLiberacao):'—',tmT=h.tsEntrada&&h.tsSaida?fmtMs(h.tsSaida-h.tsEntrada):'—',sitBg=h.situacao==='Liberado'?'#c8f0a0':h.situacao==='Na fila'?'#ffeebb':'#ffd0c0';return`<tr><td style="font-weight:600">${h.num}</td><td>${h.tipoEq==='cav'?'Cav':'Semi'}</td><td>${h.motivo||'—'}</td><td><span class="sb" style="background:${STCLR[hSt]||'#888'}">${SL[hSt]||hSt}</span></td><td>${h.eq||'—'}</td><td>${h.ts||'—'}</td><td>${h.hrLib||'—'}</td><td>${h.hrSaida||'—'}</td><td style="color:var(--am);font-weight:600">${tmM}</td><td style="color:var(--ab);font-weight:600">${tmF}</td><td style="color:#3a8a18;font-weight:600">${tmT}</td><td><span style="font-size:7px;padding:2px 5px;border-radius:3px;background:${sitBg};color:#333">${h.situacao}</span></td></tr>`;}).join('');
+}
+
+// ── PDF ──
+async function gerarPDF(){
+  const loading=document.getElementById('pdf-loading');loading.classList.add('show');await new Promise(r=>setTimeout(r,200));
+  try{
+    const{jsPDF}=window.jspdf;const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    const W=210,M=14,cv=calcTotais('cav'),sm=calcTotais('semi'),conj=Math.min(cv.disp,sm.disp),totConj=Math.min(cv.total,sm.total),pct=totConj>0?Math.round(conj/totConj*100):0;
+    const now=new Date(),dtStr=now.toLocaleDateString('pt-BR'),hrStr=now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),turno=document.getElementById('turno-sel').value,equipe=document.getElementById('equipe-sel').value||'Todas',facil=document.getElementById('facil-inp').value.trim()||'—';
+    let y=0;
+    doc.setFillColor(30,92,10);doc.rect(0,0,210,32,'F');doc.setFillColor(198,89,10);doc.rect(0,28,210,4,'F');
+    doc.setTextColor(255,255,255);doc.setFontSize(16);doc.setFont('helvetica','bold');doc.text('BRASIL TERMINAL PORTUARIO',M,12);
+    doc.setFontSize(10);doc.setFont('helvetica','normal');doc.text('Relatorio Gerencial de Frota TTR',M,19);
+    doc.setFontSize(8);doc.text(`${dtStr} ${hrStr}  |  Turno: ${turno}  |  Equipe: ${equipe}  |  Facilitador: ${facil}`,M,26);y=40;
+    doc.setFillColor(240,244,236);doc.roundedRect(M,y,W-2*M,18,3,3,'F');doc.setDrawColor(176,208,128);doc.roundedRect(M,y,W-2*M,18,3,3,'S');
+    doc.setTextColor(30,92,10);doc.setFontSize(9);doc.setFont('helvetica','bold');doc.text('CONJUNTOS DISPONIVEIS',M+4,y+6);doc.setFontSize(22);doc.text(`${conj}`,M+4,y+15);
+    doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);doc.text(`de ${totConj} possiveis (${pct}%)`,M+22,y+15);
+    doc.setTextColor(58,138,24);doc.setFont('helvetica','bold');doc.text(`Cavalos: ${cv.disp}/${cv.total}`,W-M-65,y+9);doc.setTextColor(122,46,0);doc.text(`Semirreboques: ${sm.disp}/${sm.total}`,W-M-65,y+15);y+=24;
+    const drawB=(label,color,disp,total,manut,prev,corr,xOff)=>{const bw=(W-2*M-6)/2,bx=M+xOff;doc.setFillColor(...color);doc.rect(bx,y,bw,6,'F');doc.setTextColor(255,255,255);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text(label,bx+3,y+4.5);const cards=[{l:'Disponiveis',v:`${disp}/${total}`,bg:[200,240,160],fc:[30,92,10]},{l:'Em manutencao',v:`${manut}`,bg:[220,220,210],fc:[50,50,50]},{l:'Preventivas',v:`${prev}`,bg:[255,224,144],fc:[122,88,0]},{l:'Corretivas',v:`${corr}`,bg:[255,208,128],fc:[122,56,0]}];const cw=(bw-4)/4;cards.forEach((c,i)=>{const cx=bx+2+i*cw;doc.setFillColor(...c.bg);doc.roundedRect(cx,y+7,cw-1,12,1,1,'F');doc.setTextColor(...c.fc);doc.setFontSize(12);doc.setFont('helvetica','bold');doc.text(c.v,cx+cw/2,y+14.5,{align:'center'});doc.setFontSize(6);doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);doc.text(c.l,cx+cw/2,y+18,{align:'center'});});};
+    drawB('CAVALOS TTR',[30,92,10],cv.disp,cv.total,cv.manut,cv.prev,cv.corr,0);drawB('SEMIRREBOQUES',[122,46,0],sm.disp,sm.total,sm.manut,sm.prev,sm.corr,(W-2*M)/2+3);y+=24;
+    const emM=[...H.manutCav,...H.manutSemi,...H.filaLib];
+    if(emM.length){doc.setFillColor(30,92,10);doc.rect(M,y,W-2*M,7,'F');doc.setTextColor(255,255,255);doc.setFontSize(9);doc.setFont('helvetica','bold');doc.text('EQUIPAMENTOS EM MANUTENCAO AGORA',M+3,y+5);y+=8;const stC={prev:[255,224,144],corr:[255,208,128],indisp:[255,192,176]},stT={prev:[122,88,0],corr:[122,56,0],indisp:[128,0,0]};doc.autoTable({startY:y,margin:{left:M,right:M},head:[['Equip.','Tipo','Motivo','Status','Equipe','Entrada','T.Parado','Desc.']],body:emM.map(h=>{const st=H.eqStatus[h.num]||h.status||'prev';return[h.num,h.tipoEq==='cav'?'Cavalo':'Semi',h.motivo||'—',SL[st]||st,h.eq||'—',`${h.dt} ${h.hr}`,h.tsEntrada?fmtMs(Date.now()-h.tsEntrada):'—',h.desc||'—'];}),headStyles:{fillColor:[30,92,10],textColor:255,fontSize:7,fontStyle:'bold',cellPadding:2},bodyStyles:{fontSize:7,cellPadding:2},alternateRowStyles:{fillColor:[245,248,242]},columnStyles:{0:{fontStyle:'bold',cellWidth:18},1:{cellWidth:22},2:{cellWidth:20},3:{cellWidth:22},4:{cellWidth:14},5:{cellWidth:28},6:{cellWidth:20,fontStyle:'bold'},7:{cellWidth:'auto'}},didParseCell:d=>{if(d.section==='body'&&d.column.index===3){const sv=emM[d.row.index]?.status||'prev';d.cell.styles.fillColor=stC[sv]||[240,240,240];d.cell.styles.textColor=stT[sv]||[50,50,50];d.cell.styles.fontStyle='bold';}},theme:'plain'});y=doc.lastAutoTable.finalY+6;}
+    if(H.historico.length){if(y>240){doc.addPage();y=14;}doc.setFillColor(30,92,10);doc.rect(M,y,W-2*M,7,'F');doc.setTextColor(255,255,255);doc.setFontSize(9);doc.setFont('helvetica','bold');doc.text('HISTORICO COMPLETO DE TRANSACOES',M+3,y+5);y+=8;doc.autoTable({startY:y,margin:{left:M,right:M},head:[['Equip.','Tipo','Motivo','Status','Eq.','Entrada','Lib.','Saida','T.Mn','T.Fl','T.Tot','Situacao']],body:H.historico.slice().reverse().map(h=>{const hSt=h.status||'prev';return[h.num,h.tipoEq==='cav'?'Cav':'Semi',h.motivo||'—',SL[hSt]||hSt,h.eq||'—',`${h.dt} ${h.hr}`,h.hrLib||'—',h.hrSaida||'—',h.tsEntrada&&h.tsLiberacao?fmtMs(h.tsLiberacao-h.tsEntrada):'—',h.tsLiberacao&&h.tsSaida?fmtMs(h.tsSaida-h.tsLiberacao):'—',h.tsEntrada&&h.tsSaida?fmtMs(h.tsSaida-h.tsEntrada):'—',h.situacao||'—'];}),headStyles:{fillColor:[50,50,50],textColor:255,fontSize:6,fontStyle:'bold',cellPadding:1.5},bodyStyles:{fontSize:6,cellPadding:1.5},alternateRowStyles:{fillColor:[248,251,244]},columnStyles:{0:{fontStyle:'bold',cellWidth:16},1:{cellWidth:11},2:{cellWidth:16},3:{cellWidth:18},4:{cellWidth:10},5:{cellWidth:22},6:{cellWidth:12},7:{cellWidth:12},8:{cellWidth:11},9:{cellWidth:11},10:{cellWidth:11},11:{cellWidth:'auto'}},didParseCell:d=>{if(d.section==='body'){const row=H.historico.slice().reverse()[d.row.index];if(!row)return;if(d.column.index===11){const s=row.situacao||'';d.cell.styles.fillColor=s==='Liberado'?[200,240,160]:s==='Na fila'?[255,238,187]:[255,208,192];}}},theme:'plain'});y=doc.lastAutoTable.finalY+6;}
+    const pares=Object.entries(H.atrelamentos);if(pares.length){if(y>240){doc.addPage();y=14;}doc.setFillColor(154,26,154);doc.rect(M,y,W-2*M,7,'F');doc.setTextColor(255,255,255);doc.setFontSize(9);doc.setFont('helvetica','bold');doc.text('CONJUNTOS ATRELADOS',M+3,y+5);y+=8;doc.autoTable({startY:y,margin:{left:M,right:M},head:[['Cavalo TTR','Semirreboque','Status Cavalo','Status Semi']],body:pares.map(([c,s])=>[c,s,SL[eqSt(c)]||'—',SL[eqSt(s)]||'—']),headStyles:{fillColor:[154,26,154],textColor:255,fontSize:7,fontStyle:'bold',cellPadding:2},bodyStyles:{fontSize:7,cellPadding:2},alternateRowStyles:{fillColor:[248,240,255]},theme:'plain'});y=doc.lastAutoTable.finalY+6;}
+    const eq5=['A','B','C','D','E'],eqStats=eq5.map(e=>({eq:e,total:H.historico.filter(h=>h.eq===e).length,cav:H.historico.filter(h=>h.eq===e&&h.tipoEq==='cav').length,semi:H.historico.filter(h=>h.eq===e&&h.tipoEq==='semi').length,lib:H.historico.filter(h=>h.eq===e&&h.situacao==='Liberado').length})).filter(e=>e.total>0);
+    if(eqStats.length){if(y>240){doc.addPage();y=14;}doc.setFillColor(26,90,154);doc.rect(M,y,W-2*M,7,'F');doc.setTextColor(255,255,255);doc.setFontSize(9);doc.setFont('helvetica','bold');doc.text('RESUMO POR EQUIPE',M+3,y+5);y+=8;doc.autoTable({startY:y,margin:{left:M,right:M},head:[['Equipe','Total','Cavalos','Semirreboques','Liberados']],body:eqStats.map(e=>[`Equipe ${e.eq}`,e.total,e.cav,e.semi,e.lib]),headStyles:{fillColor:[26,90,154],textColor:255,fontSize:8,fontStyle:'bold',cellPadding:2},bodyStyles:{fontSize:8,cellPadding:3},alternateRowStyles:{fillColor:[230,241,251]},theme:'plain'});y=doc.lastAutoTable.finalY+6;}
+    const motStats=MOTIVOS.map(m=>({m,cav:H.historico.filter(h=>h.motivo===m&&h.tipoEq==='cav').length,semi:H.historico.filter(h=>h.motivo===m&&h.tipoEq==='semi').length})).filter(x=>x.cav+x.semi>0);
+    if(motStats.length){if(y>240){doc.addPage();y=14;}doc.setFillColor(196,90,10);doc.rect(M,y,W-2*M,7,'F');doc.setTextColor(255,255,255);doc.setFontSize(9);doc.setFont('helvetica','bold');doc.text('OCORRENCIAS POR MOTIVO',M+3,y+5);y+=8;doc.autoTable({startY:y,margin:{left:M,right:M},head:[['Motivo','Cavalos','Semirreboques','Total']],body:motStats.map(x=>[x.m,x.cav,x.semi,x.cav+x.semi]),headStyles:{fillColor:[196,90,10],textColor:255,fontSize:8,fontStyle:'bold',cellPadding:2},bodyStyles:{fontSize:8,cellPadding:3},alternateRowStyles:{fillColor:[253,240,230]},theme:'plain'});}
+    const tp=doc.internal.getNumberOfPages();for(let p=1;p<=tp;p++){doc.setPage(p);doc.setFillColor(30,92,10);doc.rect(0,287,210,10,'F');doc.setTextColor(255,255,255);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.text('Brasil Terminal Portuario — Relatorio Gerencial TTR — Uso Interno',M,293);doc.text(`Pag. ${p}/${tp}  |  ${dtStr} ${hrStr}`,W-M,293,{align:'right'});}
+    doc.save(`BTP_TTR_${dtStr.replace(/\//g,'-')}_${hrStr.replace(':','h')}.pdf`);
+  }catch(e){alert('Erro ao gerar PDF: '+e.message);}
+  loading.classList.remove('show');
+}
+
+function baixarCSV(){const rows=[['Equipamento','Tipo','Motivo','Status','Equipe','Turno','Entrada','Liberacao','Saida','T.Manut(min)','T.Fila(min)','T.Total(min)','Situacao','Descricao']];H.historico.forEach(h=>{const tmM=h.tsEntrada&&h.tsLiberacao?Math.round((h.tsLiberacao-h.tsEntrada)/60000):'',tmF=h.tsLiberacao&&h.tsSaida?Math.round((h.tsSaida-h.tsLiberacao)/60000):'',tmT=h.tsEntrada&&h.tsSaida?Math.round((h.tsSaida-h.tsEntrada)/60000):'';rows.push([h.num,h.tipoEq==='cav'?'Cavalo':'Semi',h.motivo||'',SL[h.status||'prev'],h.eq||'',h.turno||'',h.ts||'',h.hrLib||'',h.hrSaida||'',tmM,tmF,tmT,h.situacao||'',h.desc||'']);});const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}));a.download=`BTP_TTR_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.csv`;a.click();}
+function enviarEmail(){const cv=calcTotais('cav'),sm=calcTotais('semi');const body=`Relatorio BTP TTR - ${new Date().toLocaleString('pt-BR')}\n\nCAVALOS: Disp ${cv.disp}/${cv.total} | Manut ${cv.manut} (Prev:${cv.prev} Corr:${cv.corr})\nSEMIRREBOQUES: Disp ${sm.disp}/${sm.total} | Manut ${sm.manut} (Prev:${sm.prev} Corr:${sm.corr})\nConjuntos disponiveis: ${Math.min(cv.disp,sm.disp)}\n---\nBrasil Terminal Portuario`;window.location.href=`mailto:?subject=BTP TTR ${new Date().toLocaleDateString('pt-BR')}&body=${encodeURIComponent(body)}`;}
+
+// ── Clock / auto-save ──
+function checkFR(){const n=new Date();if(lastFR!==n.toDateString()&&n.getHours()===0){H.fuel={};lastFR=n.toDateString();rGrids();agendarSave();}}
+function tickClock(){
+  const t=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  document.getElementById('clock').textContent=t;const cr=document.getElementById('clock-r');if(cr)cr.textContent=t;
+  checkFR();if(H.manutCav.length||H.manutSemi.length||H.filaLib.length){rListas();rFila();}
+  if(new Date().getSeconds()===0&&new Date().getMinutes()%2===0)salvarLS();
+}
+window.addEventListener('beforeunload',salvarLS);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)salvarLS();});
+
+function init(){
+  const ok=carregarLS();
+  if(!ok)document.getElementById('data-op').value=new Date().toISOString().split('T')[0];
+  bMotivoBtns('cav');bMotivoBtns('semi');bSelects();bAtrSelects();
+  rGrids();rListas();rFila();rMetricas();bCharts();rAtrLista();
+  setInterval(tickClock,1000);tickClock();
+  if(ok)mostrarSalvo();
+}
+init();
+</script>
+</body>
+</html>
